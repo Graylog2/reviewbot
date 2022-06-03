@@ -100333,6 +100333,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -100393,8 +100404,8 @@ module.exports = (app) => {
         const filesWithErrors = results.filter(result => result.messages.length > 0);
         const totalErrors = filesWithErrors.map(file => file.messages.length).reduce((prev, cur) => prev + cur, 0);
         if (totalErrors > 0) {
-            core.warning(`Found ${totalErrors} linter hints in the changed code.`);
             const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
+                message: message.message,
                 file: normalizeFilename(file.filePath),
                 title: `${formatRuleName(message.ruleId)}: ${message.message}`,
                 startLine: message.line,
@@ -100402,7 +100413,11 @@ module.exports = (app) => {
                 endLine: message.endLine,
                 endColumn: message.endColumn,
             })));
-            annotations.forEach(annotation => core.warning(annotation.title, annotation));
+            annotations.forEach((_a) => {
+                var { message } = _a, rest = __rest(_a, ["message"]);
+                return core.warning(message, rest);
+            });
+            core.setFailed(`Found ${totalErrors} linter hints in the changed code.`);
         }
     }));
 };

@@ -83,9 +83,8 @@ module.exports = (app: Probot) => {
     const totalErrors = filesWithErrors.map(file => file.messages.length).reduce((prev, cur) => prev + cur, 0);
 
     if (totalErrors > 0) {
-      core.warning(`Found ${totalErrors} linter hints in the changed code.`);
-
       const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
+        message: message.message,
         file: normalizeFilename(file.filePath),
         title: `${formatRuleName(message.ruleId)}: ${message.message}`,
         startLine: message.line,
@@ -94,7 +93,9 @@ module.exports = (app: Probot) => {
         endColumn: message.endColumn,
       })));
 
-      annotations.forEach(annotation => core.warning(annotation.title, annotation));
+      annotations.forEach(({ message, ...rest }) => core.warning(message, rest));
+
+      core.setFailed(`Found ${totalErrors} linter hints in the changed code.`)
     }
   });
 };
