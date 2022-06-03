@@ -100405,9 +100405,9 @@ module.exports = (app) => {
         const totalErrors = filesWithErrors.map(file => file.messages.length).reduce((prev, cur) => prev + cur, 0);
         if (totalErrors > 0) {
             const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
-                message: message.message,
+                message: `${formatRuleName(message.ruleId)}: ${message.message}`,
+                title: message.message,
                 file: normalizeFilename(file.filePath),
-                title: `${formatRuleName(message.ruleId)}: ${message.message}`,
                 startLine: message.line,
                 startColumn: message.column,
                 endLine: message.endLine,
