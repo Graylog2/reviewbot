@@ -32,30 +32,31 @@ async function lintDiff(baseSha: string, headSha: string, prefix: string): Promi
   return JSON.parse(result) as Array<File>;
 }
 
-const PR_REVIEW_BODY = 'Hey there! This is the automated PR review service. '
-  + ' I have found some issues with the changes you made to JavaScript/TypeScript files.';
-
 const normalizeFilename = (filename: string) => path.relative(process.cwd(), filename);
 
-const makeRuleNameWithUrl = (ruleName: string, url: string) => `[${ruleName}](${url})`;
-
-const formatRuleName = (ruleName: string) => {
+const ruleUrl = (ruleName: string) => {
   const splittedRuleName = ruleName.split('/');
   if (splittedRuleName.length === 1) {
-    return makeRuleNameWithUrl(ruleName, `https://eslint.org/docs/rules/${ruleName}`);
+    return `https://eslint.org/docs/rules/${ruleName}`;
   }
 
   const [domain, ruleId] = splittedRuleName;
   switch (domain) {
     case 'jest':
-      return makeRuleNameWithUrl(ruleId, `https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/${ruleId}.md`);
+      return `https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/${ruleId}.md`;
     case 'testing-library': 
-      return makeRuleNameWithUrl(ruleId, `https://github.com/testing-library/eslint-plugin-testing-library/blob/main/docs/rules/${ruleId}.md`);
+      return `https://github.com/testing-library/eslint-plugin-testing-library/blob/main/docs/rules/${ruleId}.md`;
     case '@typescript-eslint':
-      return makeRuleNameWithUrl(ruleId, `https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/${ruleId}.md`);
+      return `https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/${ruleId}.md`;
   }
 
-  return ruleName;
+  return undefined;
+}
+
+const formatRuleMessage = (ruleName: string) => {
+  const url = ruleUrl(ruleName);
+
+  return url ? `See ${url} for details.` : 'No further rule information available.';
 }
 
 const shouldBeSkipped = (body: string | null) => body 
@@ -84,7 +85,7 @@ module.exports = (app: Probot) => {
 
     if (totalErrors > 0) {
       const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
-        message: `${formatRuleName(message.ruleId)}: ${message.message}`,
+        message: formatRuleMessage(message.ruleId),
         title: message.message,
         file: normalizeFilename(file.filePath),
         startLine: message.line,
