@@ -7,6 +7,9 @@ inputs:
   prefix:
     description: 'The prefix of the folder where JS/TS files are located'
     required: true
+  workingDirectory:
+    description: 'The working directory of this action. Same as prefix if not specified'
+    required: false
   token:
     description: 'The github token for this action'
     required: true

@@ -26,8 +26,13 @@ async function exec(command: string) {
   return new Promise<string>((resolve) => childExec(command, (error, stdout, stderr) => resolve(stdout)));
 }
 
-async function lintDiff(baseSha: string, headSha: string, prefix: string): Promise<Array<File>> {
-  const cmd = `cd ./${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+async function lintDiff(
+  baseSha: string,
+  headSha: string,
+  prefix: string,
+  workingDirectory: string
+): Promise<Array<File>> {
+  const cmd = `cd ./${workingDirectory}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
   core.debug(`Executing: ${cmd}`);
   const result = await exec(cmd);
   core.debug(`Got result: ${result}`);
@@ -67,6 +72,7 @@ const shouldBeSkipped = (body: string | null) =>
 export default (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
+    const workingDirectory = core.getInput('workingDirectory', { required: false }) ?? prefix;
     const { owner, repo, pull_number } = await context.pullRequest();
 
     core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
@@ -90,7 +96,7 @@ export default (app: Probot) => {
       return;
     }
 
-    const results = await lintDiff(baseSha, headSha, prefix);
+    const results = await lintDiff(baseSha, headSha, prefix, workingDirectory);
     const filesWithErrors = results.filter((result) => result.messages.length > 0);
 
     console.log(`Files with errors: ${filesWithErrors}`);

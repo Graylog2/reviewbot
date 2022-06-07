@@ -100356,9 +100356,9 @@ function exec(command) {
         return new Promise((resolve) => (0, child_process_1.exec)(command, (error, stdout, stderr) => resolve(stdout)));
     });
 }
-function lintDiff(baseSha, headSha, prefix) {
+function lintDiff(baseSha, headSha, prefix, workingDirectory) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmd = `cd ./${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        const cmd = `cd ./${workingDirectory}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
         core.debug(`Executing: ${cmd}`);
         const result = yield exec(cmd);
         core.debug(`Got result: ${result}`);
@@ -100389,7 +100389,9 @@ const formatRuleMessage = (ruleName) => {
 const shouldBeSkipped = (body) => body ? body.includes('[review skip]') || body.includes('[no review]') || body.includes('[skip review]') : false;
 exports["default"] = (app) => {
     app.on(['pull_request.opened', 'pull_request.synchronize'], (context) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a;
         const prefix = core.getInput('prefix', { required: true });
+        const workingDirectory = (_a = core.getInput('workingDirectory', { required: false })) !== null && _a !== void 0 ? _a : prefix;
         const { owner, repo, pull_number } = yield context.pullRequest();
         core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
         const { data: { body, base: { sha: baseSha }, head: { sha: headSha }, }, } = yield context.octokit.pulls.get({
@@ -100402,7 +100404,7 @@ exports["default"] = (app) => {
             core.debug('Skipping PR.');
             return;
         }
-        const results = yield lintDiff(baseSha, headSha, prefix);
+        const results = yield lintDiff(baseSha, headSha, prefix, workingDirectory);
         const filesWithErrors = results.filter((result) => result.messages.length > 0);
         console.log(`Files with errors: ${filesWithErrors}`);
         const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
