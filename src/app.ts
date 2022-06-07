@@ -7,20 +7,20 @@ import { exec as childExec } from 'child_process';
 import path from 'path';
 
 type Message = {
-  "ruleId": string,
-  "severity": number,
-  "message": string,
-  "line": number,
-  "column": number,
-  "nodeType": string,
-  "messageId": string,
-  "endLine": number,
-  "endColumn": number
-}
+  ruleId: string;
+  severity: number;
+  message: string;
+  line: number;
+  column: number;
+  nodeType: string;
+  messageId: string;
+  endLine: number;
+  endColumn: number;
+};
 type File = {
-  filePath: string,
-  messages: Array<Message>
-}
+  filePath: string;
+  messages: Array<Message>;
+};
 
 async function exec(command: string) {
   return new Promise<string>((resolve) => childExec(command, (error, stdout, stderr) => resolve(stdout)));
@@ -44,32 +44,35 @@ const ruleUrl = (ruleName: string) => {
   switch (domain) {
     case 'jest':
       return `https://github.com/jest-community/eslint-plugin-jest/blob/main/docs/rules/${ruleId}.md`;
-    case 'testing-library': 
+    case 'testing-library':
       return `https://github.com/testing-library/eslint-plugin-testing-library/blob/main/docs/rules/${ruleId}.md`;
     case '@typescript-eslint':
       return `https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/${ruleId}.md`;
   }
 
   return undefined;
-}
+};
 
 const formatRuleMessage = (ruleName: string) => {
   const url = ruleUrl(ruleName);
 
   return url ? `See ${url} for details.` : 'No further rule information available.';
-}
+};
 
-const shouldBeSkipped = (body: string | null) => body 
-  ? (body.includes('[review skip]')
-    || body.includes('[no review]')
-    || body.includes('[skip review]'))
-  : false;
+const shouldBeSkipped = (body: string | null) =>
+  body ? body.includes('[review skip]') || body.includes('[no review]') || body.includes('[skip review]') : false;
 
 export default (app: Probot) => {
-  app.on(["pull_request.opened", "pull_request.synchronize"], async (context) => {
+  app.on(['pull_request.opened', 'pull_request.synchronize'], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
     const { owner, repo, pull_number } = await context.pullRequest();
-    const { data: { body, base: { sha: baseSha }, head: { sha: headSha } } } = await context.octokit.pulls.get({
+    const {
+      data: {
+        body,
+        base: { sha: baseSha },
+        head: { sha: headSha },
+      },
+    } = await context.octokit.pulls.get({
       owner,
       repo,
       pull_number,
@@ -78,26 +81,27 @@ export default (app: Probot) => {
     if (shouldBeSkipped(body)) {
       return;
     }
-    
+
     const results = await lintDiff(baseSha, headSha, prefix);
-    const filesWithErrors = results.filter(result => result.messages.length > 0);
-    const totalErrors = filesWithErrors.map(file => file.messages.length).reduce((prev, cur) => prev + cur, 0);
+    const filesWithErrors = results.filter((result) => result.messages.length > 0);
+    const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
 
     if (totalErrors > 0) {
-      const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
-        message: formatRuleMessage(message.ruleId),
-        title: message.message,
-        file: normalizeFilename(file.filePath),
-        startLine: message.line,
-        startColumn: message.column,
-        endLine: message.endLine,
-        endColumn: message.endColumn,
-      })));
+      const annotations = filesWithErrors.flatMap((file) =>
+        file.messages.map((message) => ({
+          message: formatRuleMessage(message.ruleId),
+          title: message.message,
+          file: normalizeFilename(file.filePath),
+          startLine: message.line,
+          startColumn: message.column,
+          endLine: message.endLine,
+          endColumn: message.endColumn,
+        }))
+      );
 
       annotations.forEach(({ message, ...rest }) => core.warning(message, rest));
 
-      core.setFailed(`Found ${totalErrors} linter hints in the changed code.`)
+      core.setFailed(`Found ${totalErrors} linter hints in the changed code.`);
     }
   });
 };
-
