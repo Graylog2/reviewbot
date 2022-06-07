@@ -28,7 +28,9 @@ async function exec(command: string) {
 
 async function lintDiff(baseSha: string, headSha: string, prefix: string): Promise<Array<File>> {
   const cmd = `cd ./${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+  core.debug(`Executing: ${cmd}`);
   const result = await exec(cmd);
+  core.debug(`Got result: ${result}`);
   return JSON.parse(result) as Array<File>;
 }
 
@@ -66,6 +68,9 @@ export default (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
     const { owner, repo, pull_number } = await context.pullRequest();
+
+    core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
+
     const {
       data: {
         body,
@@ -78,12 +83,18 @@ export default (app: Probot) => {
       pull_number,
     });
 
+    core.debug(`Base SHA: ${baseSha}, head SHA: ${headSha}`);
+
     if (shouldBeSkipped(body)) {
+      core.debug('Skipping PR.');
       return;
     }
 
     const results = await lintDiff(baseSha, headSha, prefix);
     const filesWithErrors = results.filter((result) => result.messages.length > 0);
+
+    console.log(`Files with errors: ${filesWithErrors}`);
+
     const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
 
     if (totalErrors > 0) {

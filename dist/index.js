@@ -100297,7 +100297,7 @@ try {
 /***/ }),
 
 /***/ 90396:
-/***/ (function(module, exports, __nccwpck_require__) {
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
 
@@ -100359,7 +100359,9 @@ function exec(command) {
 function lintDiff(baseSha, headSha, prefix) {
     return __awaiter(this, void 0, void 0, function* () {
         const cmd = `cd ./${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        core.debug(`Executing: ${cmd}`);
         const result = yield exec(cmd);
+        core.debug(`Got result: ${result}`);
         return JSON.parse(result);
     });
 }
@@ -100384,28 +100386,28 @@ const formatRuleMessage = (ruleName) => {
     const url = ruleUrl(ruleName);
     return url ? `See ${url} for details.` : 'No further rule information available.';
 };
-const shouldBeSkipped = (body) => body
-    ? (body.includes('[review skip]')
-        || body.includes('[no review]')
-        || body.includes('[skip review]'))
-    : false;
-module.exports = (app) => {
-    app.on(["pull_request.opened", "pull_request.synchronize"], (context) => __awaiter(void 0, void 0, void 0, function* () {
+const shouldBeSkipped = (body) => body ? body.includes('[review skip]') || body.includes('[no review]') || body.includes('[skip review]') : false;
+exports["default"] = (app) => {
+    app.on(['pull_request.opened', 'pull_request.synchronize'], (context) => __awaiter(void 0, void 0, void 0, function* () {
         const prefix = core.getInput('prefix', { required: true });
         const { owner, repo, pull_number } = yield context.pullRequest();
-        const { data: { body, base: { sha: baseSha }, head: { sha: headSha } } } = yield context.octokit.pulls.get({
+        core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
+        const { data: { body, base: { sha: baseSha }, head: { sha: headSha }, }, } = yield context.octokit.pulls.get({
             owner,
             repo,
             pull_number,
         });
+        core.debug(`Base SHA: ${baseSha}, head SHA: ${headSha}`);
         if (shouldBeSkipped(body)) {
+            core.debug('Skipping PR.');
             return;
         }
         const results = yield lintDiff(baseSha, headSha, prefix);
-        const filesWithErrors = results.filter(result => result.messages.length > 0);
-        const totalErrors = filesWithErrors.map(file => file.messages.length).reduce((prev, cur) => prev + cur, 0);
+        const filesWithErrors = results.filter((result) => result.messages.length > 0);
+        console.log(`Files with errors: ${filesWithErrors}`);
+        const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
         if (totalErrors > 0) {
-            const annotations = filesWithErrors.flatMap(file => file.messages.map(message => ({
+            const annotations = filesWithErrors.flatMap((file) => file.messages.map((message) => ({
                 message: formatRuleMessage(message.ruleId),
                 title: message.message,
                 file: normalizeFilename(file.filePath),
@@ -100422,6 +100424,22 @@ module.exports = (app) => {
         }
     }));
 };
+
+
+/***/ }),
+
+/***/ 6144:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const { run } = __nccwpck_require__(93159);
+const app_1 = __importDefault(__nccwpck_require__(90396));
+run(app_1.default);
 
 
 /***/ }),
@@ -102073,17 +102091,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-
-const { run } = __nccwpck_require__(93159);
-const app = __nccwpck_require__(90396);
-run(app);
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(6144);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;
