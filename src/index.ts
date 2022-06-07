@@ -1,5 +1,5 @@
 const { run } = require("@probot/adapter-github-actions");
-const app = require("./app");
+import app from "./app";
 
 run(app);
 

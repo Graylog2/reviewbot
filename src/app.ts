@@ -65,7 +65,7 @@ const shouldBeSkipped = (body: string | null) => body
     || body.includes('[skip review]'))
   : false;
 
-module.exports = (app: Probot) => {
+export default (app: Probot) => {
   app.on(["pull_request.opened", "pull_request.synchronize"], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
     const { owner, repo, pull_number } = await context.pullRequest();
