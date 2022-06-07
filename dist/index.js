@@ -100358,14 +100358,14 @@ function exec(command) {
 }
 function lintDiff(baseSha, headSha, prefix, workingDirectory) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmd = `cd ./${workingDirectory}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
         core.debug(`Executing: ${cmd}`);
         const result = yield exec(cmd);
         core.debug(`Got result: ${result}`);
         return JSON.parse(result);
     });
 }
-const normalizeFilename = (filename) => path_1.default.relative(process.cwd(), filename);
+const normalizeFilename = (filename, workingDirectory) => path_1.default.relative(`${process.cwd()}/${workingDirectory}`, filename);
 const ruleUrl = (ruleName) => {
     const splittedRuleName = ruleName.split('/');
     if (splittedRuleName.length === 1) {
@@ -100391,7 +100391,7 @@ exports["default"] = (app) => {
     app.on(['pull_request.opened', 'pull_request.synchronize'], (context) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         const prefix = core.getInput('prefix', { required: true });
-        const workingDirectory = (_a = core.getInput('workingDirectory', { required: false })) !== null && _a !== void 0 ? _a : prefix;
+        const workingDirectory = (_a = core.getInput('workingDirectory', { required: false })) !== null && _a !== void 0 ? _a : '.';
         const { owner, repo, pull_number } = yield context.pullRequest();
         core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
         const { data: { body, base: { sha: baseSha }, head: { sha: headSha }, }, } = yield context.octokit.pulls.get({
@@ -100406,13 +100406,13 @@ exports["default"] = (app) => {
         }
         const results = yield lintDiff(baseSha, headSha, prefix, workingDirectory);
         const filesWithErrors = results.filter((result) => result.messages.length > 0);
-        console.log(`Files with errors: ${filesWithErrors}`);
+        core.debug(`Files with errors: ${filesWithErrors}`);
         const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
         if (totalErrors > 0) {
             const annotations = filesWithErrors.flatMap((file) => file.messages.map((message) => ({
                 message: formatRuleMessage(message.ruleId),
                 title: message.message,
-                file: normalizeFilename(file.filePath),
+                file: normalizeFilename(file.filePath, workingDirectory),
                 startLine: message.line,
                 startColumn: message.column,
                 endLine: message.endLine,

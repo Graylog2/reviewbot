@@ -32,14 +32,15 @@ async function lintDiff(
   prefix: string,
   workingDirectory: string
 ): Promise<Array<File>> {
-  const cmd = `cd ./${workingDirectory}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+  const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
   core.debug(`Executing: ${cmd}`);
   const result = await exec(cmd);
   core.debug(`Got result: ${result}`);
   return JSON.parse(result) as Array<File>;
 }
 
-const normalizeFilename = (filename: string) => path.relative(process.cwd(), filename);
+const normalizeFilename = (filename: string, workingDirectory: string) =>
+  path.relative(`${process.cwd()}/${workingDirectory}`, filename);
 
 const ruleUrl = (ruleName: string) => {
   const splittedRuleName = ruleName.split('/');
@@ -72,7 +73,7 @@ const shouldBeSkipped = (body: string | null) =>
 export default (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
-    const workingDirectory = core.getInput('workingDirectory', { required: false }) ?? prefix;
+    const workingDirectory = core.getInput('workingDirectory', { required: false }) ?? '.';
     const { owner, repo, pull_number } = await context.pullRequest();
 
     core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
@@ -99,7 +100,7 @@ export default (app: Probot) => {
     const results = await lintDiff(baseSha, headSha, prefix, workingDirectory);
     const filesWithErrors = results.filter((result) => result.messages.length > 0);
 
-    console.log(`Files with errors: ${filesWithErrors}`);
+    core.debug(`Files with errors: ${filesWithErrors}`);
 
     const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
 
@@ -108,7 +109,7 @@ export default (app: Probot) => {
         file.messages.map((message) => ({
           message: formatRuleMessage(message.ruleId),
           title: message.message,
-          file: normalizeFilename(file.filePath),
+          file: normalizeFilename(file.filePath, workingDirectory),
           startLine: message.line,
           startColumn: message.column,
           endLine: message.endLine,
