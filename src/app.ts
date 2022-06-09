@@ -3,6 +3,7 @@
  */
 import type { Probot } from 'probot';
 import * as core from '@actions/core';
+import * as fs from 'fs';
 import { exec as childExec } from 'child_process';
 import path from 'path';
 
@@ -70,6 +71,28 @@ const formatRuleMessage = (ruleName: string) => {
 const shouldBeSkipped = (body: string | null) =>
   body ? body.includes('[review skip]') || body.includes('[no review]') || body.includes('[skip review]') : false;
 
+const writeSummary = (summary: string) => {
+  const filename = process.env.GITHUB_STEP_SUMMARY;
+
+  if (filename === undefined) {
+    throw Error('No step summary filename passed in environment!');
+  }
+
+  fs.writeFileSync(filename, summary);
+};
+
+const worriedEmoji = (numberOfErrors: number) => {
+  if (numberOfErrors > 100) {
+    return ':sob:';
+  }
+
+  if (numberOfErrors > 10) {
+    return ':disappointed_relieved:';
+  }
+
+  return ':worried:';
+};
+
 export default (app: Probot) => {
   app.on(['pull_request.opened', 'pull_request.synchronize'], async (context) => {
     const prefix = core.getInput('prefix', { required: true });
@@ -120,6 +143,10 @@ export default (app: Probot) => {
       annotations.forEach(({ message, ...rest }) => core.warning(message, rest));
 
       core.setFailed(`Found ${totalErrors} linter hints in the changed code.`);
+
+      writeSummary(`## Found ${totalErrors} linter hints in the changed code. ${worriedEmoji(totalErrors)}`);
+    } else {
+      writeSummary('## Your code looks awesome! :rocket:');
     }
   });
 };

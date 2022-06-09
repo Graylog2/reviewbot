@@ -100349,6 +100349,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(42186));
+const fs = __importStar(__nccwpck_require__(57147));
 const child_process_1 = __nccwpck_require__(32081);
 const path_1 = __importDefault(__nccwpck_require__(71017));
 function exec(command) {
@@ -100387,6 +100388,22 @@ const formatRuleMessage = (ruleName) => {
     return url ? `See ${url} for details.` : 'No further rule information available.';
 };
 const shouldBeSkipped = (body) => body ? body.includes('[review skip]') || body.includes('[no review]') || body.includes('[skip review]') : false;
+const writeSummary = (summary) => {
+    const filename = process.env.GITHUB_STEP_SUMMARY;
+    if (filename === undefined) {
+        throw Error('No step summary filename passed in environment!');
+    }
+    fs.writeFileSync(filename, summary);
+};
+const worriedEmoji = (numberOfErrors) => {
+    if (numberOfErrors > 100) {
+        return ':sob:';
+    }
+    if (numberOfErrors > 10) {
+        return ':disappointed_relieved:';
+    }
+    return ':worried:';
+};
 exports["default"] = (app) => {
     app.on(['pull_request.opened', 'pull_request.synchronize'], (context) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -100423,6 +100440,10 @@ exports["default"] = (app) => {
                 return core.warning(message, rest);
             });
             core.setFailed(`Found ${totalErrors} linter hints in the changed code.`);
+            writeSummary(`## Found ${totalErrors} linter hints in the changed code. ${worriedEmoji(totalErrors)}`);
+        }
+        else {
+            writeSummary('## Your code looks awesome! :rocket:');
         }
     }));
 };
