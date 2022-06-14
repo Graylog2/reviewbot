@@ -32,7 +32,7 @@ async function exec(command: string) {
     if (result.status === 0) {
       resolve(result.stdout.toString());
     } else {
-      reject(new Error(`Unable to execute linter (or timed out): ${result.stderr}`));
+      reject(result.error);
     }
   });
 }

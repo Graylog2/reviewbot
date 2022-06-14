@@ -100362,7 +100362,7 @@ function exec(command) {
                 resolve(result.stdout.toString());
             }
             else {
-                reject(new Error(`Unable to execute linter (or timed out): ${result.stderr}`));
+                reject(result.error);
             }
         });
     });
