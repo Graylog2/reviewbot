@@ -100367,9 +100367,9 @@ function exec(command) {
         });
     });
 }
-function lintDiff(baseSha, headSha, prefix, workingDirectory) {
+function lintDiff(baseRef, headRef, prefix, workingDirectory) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseRef}..${headRef} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
         core.debug(`Executing: ${cmd}`);
         const result = yield exec(cmd);
         core.debug(`Got result: ${result}`);
@@ -100421,17 +100421,17 @@ exports["default"] = (app) => {
         const workingDirectory = (_a = core.getInput('workingDirectory', { required: false })) !== null && _a !== void 0 ? _a : '.';
         const { owner, repo, pull_number } = yield context.pullRequest();
         core.debug(`Started for PR ${pull_number} in repo ${repo} from ${owner}.`);
-        const { data: { body, base: { sha: baseSha }, head: { sha: headSha }, }, } = yield context.octokit.pulls.get({
+        const { data: { body, base: { sha: baseSha }, head: { ref: headRef }, }, } = yield context.octokit.pulls.get({
             owner,
             repo,
             pull_number,
         });
-        core.debug(`Base SHA: ${baseSha}, head SHA: ${headSha}`);
+        core.debug(`Base SHA: ${baseSha}, head ref: ${headRef}`);
         if (shouldBeSkipped(body)) {
             core.debug('Skipping PR.');
             return;
         }
-        const results = yield lintDiff(baseSha, headSha, prefix, workingDirectory);
+        const results = yield lintDiff(baseSha, headRef, prefix, workingDirectory);
         const filesWithErrors = results.filter((result) => result.messages.length > 0);
         core.debug(`Files with errors: ${JSON.stringify(filesWithErrors, null, 2)}`);
         const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
