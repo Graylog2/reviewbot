@@ -38,12 +38,12 @@ async function exec(command: string) {
 }
 
 async function lintDiff(
-  baseRef: string,
-  headRef: string,
+  baseSha: string,
+  headSha: string,
   prefix: string,
   workingDirectory: string
 ): Promise<Array<File>> {
-  const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseRef}..${headRef} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+  const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}..${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
   core.debug(`Executing: ${cmd}`);
   const result = await exec(cmd);
   core.debug(`Got result: ${result}`);
@@ -115,7 +115,7 @@ export default (app: Probot) => {
       data: {
         body,
         base: { sha: baseSha },
-        head: { ref: headRef },
+        head: { sha: headSha },
       },
     } = await context.octokit.pulls.get({
       owner,
@@ -123,14 +123,14 @@ export default (app: Probot) => {
       pull_number,
     });
 
-    core.debug(`Base SHA: ${baseSha}, head ref: ${headRef}`);
+    core.debug(`Base SHA: ${baseSha}, head SHA: ${headSha}`);
 
     if (shouldBeSkipped(body)) {
       core.debug('Skipping PR.');
       return;
     }
 
-    const results = await lintDiff(baseSha, headRef, prefix, workingDirectory);
+    const results = await lintDiff(baseSha, headSha, prefix, workingDirectory);
     const filesWithErrors = results.filter((result) => result.messages.length > 0);
 
     core.debug(`Files with errors: ${JSON.stringify(filesWithErrors, null, 2)}`);
