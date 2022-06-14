@@ -100352,9 +100352,19 @@ const core = __importStar(__nccwpck_require__(42186));
 const fs = __importStar(__nccwpck_require__(57147));
 const child_process_1 = __nccwpck_require__(32081);
 const path_1 = __importDefault(__nccwpck_require__(71017));
+// execution timeout in milliseconds
+const LINTER_TIMEOUT = 10 * 60 * 1000;
 function exec(command) {
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve) => (0, child_process_1.exec)(command, (error, stdout, stderr) => resolve(stdout)));
+        return new Promise((resolve, reject) => {
+            const result = (0, child_process_1.spawnSync)(command, { timeout: LINTER_TIMEOUT });
+            if (result.status === 0) {
+                resolve(result.stdout.toString());
+            }
+            else {
+                reject(new Error(`Unable to execute linter (or timed out): ${result.stderr}`));
+            }
+        });
     });
 }
 function lintDiff(baseSha, headSha, prefix, workingDirectory) {
@@ -100423,7 +100433,7 @@ exports["default"] = (app) => {
         }
         const results = yield lintDiff(baseSha, headSha, prefix, workingDirectory);
         const filesWithErrors = results.filter((result) => result.messages.length > 0);
-        core.debug(`Files with errors: ${filesWithErrors}`);
+        core.debug(`Files with errors: ${JSON.stringify(filesWithErrors, null, 2)}`);
         const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
         if (totalErrors > 0) {
             const annotations = filesWithErrors.flatMap((file) => file.messages.map((message) => ({

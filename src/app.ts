@@ -4,7 +4,7 @@
 import type { Probot } from 'probot';
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { exec as childExec } from 'child_process';
+import { spawnSync } from 'child_process';
 import path from 'path';
 
 type Message = {
@@ -23,8 +23,18 @@ type File = {
   messages: Array<Message>;
 };
 
+// execution timeout in milliseconds
+const LINTER_TIMEOUT = 10 * 60 * 1000;
+
 async function exec(command: string) {
-  return new Promise<string>((resolve) => childExec(command, (error, stdout, stderr) => resolve(stdout)));
+  return new Promise<string>((resolve, reject) => {
+    const result = spawnSync(command, { timeout: LINTER_TIMEOUT });
+    if (result.status === 0) {
+      resolve(result.stdout.toString());
+    } else {
+      reject(new Error(`Unable to execute linter (or timed out): ${result.stderr}`));
+    }
+  });
 }
 
 async function lintDiff(
@@ -123,7 +133,7 @@ export default (app: Probot) => {
     const results = await lintDiff(baseSha, headSha, prefix, workingDirectory);
     const filesWithErrors = results.filter((result) => result.messages.length > 0);
 
-    core.debug(`Files with errors: ${filesWithErrors}`);
+    core.debug(`Files with errors: ${JSON.stringify(filesWithErrors, null, 2)}`);
 
     const totalErrors = filesWithErrors.map((file) => file.messages.length).reduce((prev, cur) => prev + cur, 0);
 
