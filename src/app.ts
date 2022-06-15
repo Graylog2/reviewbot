@@ -28,7 +28,7 @@ const LINTER_TIMEOUT = 10 * 60 * 1000;
 
 async function exec(command: string) {
   return new Promise<string>((resolve, reject) => {
-    const result = spawnSync(command, { timeout: LINTER_TIMEOUT });
+    const result = spawnSync(command, { timeout: LINTER_TIMEOUT, shell: true });
     if (result.status === 0) {
       resolve(result.stdout.toString());
     } else {

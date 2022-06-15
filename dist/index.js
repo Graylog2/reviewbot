@@ -100357,7 +100357,7 @@ const LINTER_TIMEOUT = 10 * 60 * 1000;
 function exec(command) {
     return __awaiter(this, void 0, void 0, function* () {
         return new Promise((resolve, reject) => {
-            const result = (0, child_process_1.spawnSync)(command, { timeout: LINTER_TIMEOUT });
+            const result = (0, child_process_1.spawnSync)(command, { timeout: LINTER_TIMEOUT, shell: true });
             if (result.status === 0) {
                 resolve(result.stdout.toString());
             }
