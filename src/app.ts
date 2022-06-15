@@ -27,15 +27,7 @@ type File = {
 const LINTER_TIMEOUT = 10 * 60 * 1000;
 
 async function exec(command: string) {
-  return new Promise<string>((resolve, reject) =>
-    childExec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(stdout);
-      }
-    })
-  );
+  return new Promise<string>((resolve) => childExec(command, (error, stdout, stderr) => resolve(stdout)));
 }
 
 async function lintDiff(
