@@ -4,7 +4,7 @@
 import type { Probot } from 'probot';
 import * as core from '@actions/core';
 import * as fs from 'fs';
-import { spawnSync } from 'child_process';
+import { exec as childExec } from 'child_process';
 import path from 'path';
 
 type Message = {
@@ -26,19 +26,16 @@ type File = {
 // execution timeout in milliseconds
 const LINTER_TIMEOUT = 10 * 60 * 1000;
 
-async function exec(command: string, cwd: string) {
-  return new Promise<string>((resolve, reject) => {
-    const result = spawnSync(command, {
-      timeout: LINTER_TIMEOUT,
-      cwd,
-      shell: true,
-    });
-    if (result.status === 0) {
-      resolve(result.stdout.toString());
-    } else {
-      reject(result.error);
-    }
-  });
+async function exec(command: string) {
+  return new Promise<string>((resolve, reject) =>
+    childExec(command, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout);
+      }
+    })
+  );
 }
 
 async function lintDiff(
@@ -47,9 +44,9 @@ async function lintDiff(
   prefix: string,
   workingDirectory: string
 ): Promise<Array<File>> {
-  const cmd = `git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+  const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
   core.debug(`Executing: ${cmd}`);
-  const result = await exec(cmd, `./${workingDirectory}/${prefix}`);
+  const result = await exec(cmd);
   core.debug(`Got result: ${result}`);
   return JSON.parse(result) as Array<File>;
 }

@@ -100353,29 +100353,24 @@ const fs = __importStar(__nccwpck_require__(57147));
 const child_process_1 = __nccwpck_require__(32081);
 const path_1 = __importDefault(__nccwpck_require__(71017));
 // execution timeout in milliseconds
-const LINTER_TIMEOUT = 10 * 60 * 1000;
-function exec(command, cwd) {
+const LINTER_TIMEOUT = (/* unused pure expression or super */ null && (10 * 60 * 1000));
+function exec(command) {
     return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            const result = (0, child_process_1.spawnSync)(command, {
-                timeout: LINTER_TIMEOUT,
-                cwd,
-                shell: true,
-            });
-            if (result.status === 0) {
-                resolve(result.stdout.toString());
+        return new Promise((resolve, reject) => (0, child_process_1.exec)(command, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
             }
             else {
-                reject(result.error);
+                resolve(stdout);
             }
-        });
+        }));
     });
 }
 function lintDiff(baseSha, headSha, prefix, workingDirectory) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmd = `git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
         core.debug(`Executing: ${cmd}`);
-        const result = yield exec(cmd, `./${workingDirectory}/${prefix}`);
+        const result = yield exec(cmd);
         core.debug(`Got result: ${result}`);
         return JSON.parse(result);
     });
