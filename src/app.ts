@@ -26,9 +26,13 @@ type File = {
 // execution timeout in milliseconds
 const LINTER_TIMEOUT = 10 * 60 * 1000;
 
-async function exec(command: string) {
+async function exec(command: string, cwd: string) {
   return new Promise<string>((resolve, reject) => {
-    const result = spawnSync(command, { timeout: LINTER_TIMEOUT, shell: true });
+    const result = spawnSync(command, {
+      timeout: LINTER_TIMEOUT,
+      cwd,
+      shell: true,
+    });
     if (result.status === 0) {
       resolve(result.stdout.toString());
     } else {
@@ -43,9 +47,9 @@ async function lintDiff(
   prefix: string,
   workingDirectory: string
 ): Promise<Array<File>> {
-  const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+  const cmd = `git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
   core.debug(`Executing: ${cmd}`);
-  const result = await exec(cmd);
+  const result = await exec(cmd, `./${workingDirectory}/${prefix}`);
   core.debug(`Got result: ${result}`);
   return JSON.parse(result) as Array<File>;
 }

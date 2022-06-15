@@ -100354,10 +100354,14 @@ const child_process_1 = __nccwpck_require__(32081);
 const path_1 = __importDefault(__nccwpck_require__(71017));
 // execution timeout in milliseconds
 const LINTER_TIMEOUT = 10 * 60 * 1000;
-function exec(command) {
+function exec(command, cwd) {
     return __awaiter(this, void 0, void 0, function* () {
         return new Promise((resolve, reject) => {
-            const result = (0, child_process_1.spawnSync)(command, { timeout: LINTER_TIMEOUT, shell: true });
+            const result = (0, child_process_1.spawnSync)(command, {
+                timeout: LINTER_TIMEOUT,
+                cwd,
+                shell: true,
+            });
             if (result.status === 0) {
                 resolve(result.stdout.toString());
             }
@@ -100369,9 +100373,9 @@ function exec(command) {
 }
 function lintDiff(baseSha, headSha, prefix, workingDirectory) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cmd = `cd ./${workingDirectory}/${prefix}; git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
+        const cmd = `git diff --name-only --diff-filter=ACMR ${baseSha}...${headSha} | grep -E '^${prefix}/(.*).[jt]s(x)?$'|sed 's,^${prefix}/,,'|xargs yarn -s eslint -f json`;
         core.debug(`Executing: ${cmd}`);
-        const result = yield exec(cmd);
+        const result = yield exec(cmd, `./${workingDirectory}/${prefix}`);
         core.debug(`Got result: ${result}`);
         return JSON.parse(result);
     });
