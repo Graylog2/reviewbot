@@ -59,7 +59,7 @@ const ruleUrl = (ruleName: string) => {
     case 'testing-library':
       return `https://github.com/testing-library/eslint-plugin-testing-library/blob/main/docs/rules/${ruleId}.md`;
     case '@typescript-eslint':
-      return `https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/${ruleId}.md`;
+      return `https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/${ruleId}.mdx`;
   }
 
   return undefined;
