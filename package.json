@@ -10,7 +10,7 @@
     "build": "ncc build src/index.ts -o dist"
   },
   "dependencies": {
-    "@probot/adapter-github-actions": "^4.0.0"
+    "@probot/adapter-github-actions": "^5.0.0"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.3",
