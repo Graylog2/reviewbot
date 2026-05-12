@@ -1,1 +1,8 @@
 node_modules
+
+# ncc-emitted chunks for code paths not used by the action runtime
+dist/*.index.js
+dist/file.js
+dist/worker.js
+dist/worker-pipeline.js
+dist/worker[0-9]*.js
