@@ -8,7 +8,7 @@ import { exec as childExec } from 'child_process';
 import path from 'path';
 
 type Message = {
-  ruleId: string;
+  ruleId: string | null;
   severity: number;
   message: string;
   line: number;
@@ -46,7 +46,10 @@ async function lintDiff(
 const normalizeFilename = (filename: string, workingDirectory: string) =>
   path.relative(`${process.cwd()}/${workingDirectory}`, filename);
 
-const ruleUrl = (ruleName: string) => {
+const ruleUrl = (ruleName: string | null) => {
+  if (!ruleName) {
+    return undefined;
+  }
   const splittedRuleName = ruleName.split('/');
   if (splittedRuleName.length === 1) {
     return `https://eslint.org/docs/rules/${ruleName}`;
@@ -65,7 +68,7 @@ const ruleUrl = (ruleName: string) => {
   return undefined;
 };
 
-const formatRuleMessage = (ruleName: string) => {
+const formatRuleMessage = (ruleName: string | null) => {
   const url = ruleUrl(ruleName);
 
   return url ? `See ${url} for details.` : 'No further rule information available.';

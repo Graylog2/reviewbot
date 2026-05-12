@@ -123275,6 +123275,9 @@ function lintDiff(baseSha, headSha, prefix, workingDirectory) {
 }
 const normalizeFilename = (filename, workingDirectory) => path_1.default.relative(`${process.cwd()}/${workingDirectory}`, filename);
 const ruleUrl = (ruleName) => {
+    if (!ruleName) {
+        return undefined;
+    }
     const splittedRuleName = ruleName.split('/');
     if (splittedRuleName.length === 1) {
         return `https://eslint.org/docs/rules/${ruleName}`;
