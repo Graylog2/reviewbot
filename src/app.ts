@@ -113,7 +113,7 @@ export default (app: Probot) => {
         base: { sha: baseSha },
         head: { sha: headSha },
       },
-    } = await context.octokit.pulls.get({
+    } = await context.octokit.rest.pulls.get({
       owner,
       repo,
       pull_number,
